@@ -42,19 +42,22 @@
 
 #define LOCATIONBUFFERSIZE 5
 
-#define GGABUFFERSIZE 100
-#define degrees_buffer_size 20
-
-
-struct _locationBuffer {
-	gpsPoint prevLocations[LOCATIONBUFFERSIZE];
-	float velocity[LOCATIONBUFFERSIZE];
-	int8_t top;
-} locationBuffer;
+#define GGABUFFERSIZE 90
 
 /**	
+	locationBuffer holds the last LOCATIONBUFFERSIZE number of locations in prevLocations,
+	and the last velocities in velocity              
+ */
+volatile struct _locationBuffer {
+	gpsPoint prevLocations[LOCATIONBUFFERSIZE];
+	velocity velocity[LOCATIONBUFFERSIZE];
+	short bottom;
+} locationBuffer;
+
+volatile float currentTime;
+/**	
 	NewGPSData is a boolean that will only be set to true by the 
-    usart intterupt when new location data is received.                
+    usart interrupt when new location data is received.                
  */
 bool NewGPSData;
 
@@ -62,7 +65,10 @@ bool NewGPSData;
 	IsNewGPSData() returns true if there is unread GGA data, and false otherwise
  */
 bool IsNewGPSData();
-
+/** 
+	IsGPSFixed() returns true if there GPS has a fix. False otherwise.
+ */
+bool IsGPSFixed();
 /**
 	PrintGGABuffer() attempts to send the GGA Buffer over USART
 */
@@ -73,15 +79,16 @@ void PrintGGABuffer();
  */
 void InitGPS(void);
 
-
 /**
     SetGPSBuffer() sets the GPS buffer to the passed string. This is only used for testing
  */
 void SetGPSBuffer(char*);
+
 /**
    GetGGAItem() returns the string value stored in the GGA buffer for the desired item 
  */
 char * GetGGAItem(uint8_t);
+
 /**
     GetGPSTime() returns the time of the last GPS fix info in second since midnight.
  */
@@ -110,7 +117,7 @@ float GetAltitude(void);
 /**
     PushGPSPoint() inserts a point and velocity to the location buffer
  */
-void PushGPSPoint(gpsPoint, float);
+void PushGPSPoint(gpsPoint, velocity);
 
 /**
     CreateGPSPoint() creates a gps point from the current GGA buffer and inserts it into the gps point buffer
@@ -121,6 +128,7 @@ void CreateGPSPoint(void);
     SetGPSBuffer() sets the GPS buffer to the passed string. This is only used for testing purposes
  */
 void SetGPSBuffer(char*);
+
 ISR (USART0_RX_vect);
 
 #endif

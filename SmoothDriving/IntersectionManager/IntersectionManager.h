@@ -13,8 +13,12 @@
 #include <stdlib.h>
 
 #include "../GPSFunc/GPSFunctions.h"
+#include "../GPSDecoder/GPSDecoder.h"
+#include "../IntersectionManager/IntersectionManager.h"
 
-typedef struct _intersection
+typedef struct intersection intersection;
+
+struct intersection
 {
 	float lat;
 	float lng;
@@ -22,24 +26,31 @@ typedef struct _intersection
 	short id;
 	short time;
 	short nearbyIntersectionCount;
-	short* nearbyIntersections;
-} intersection ;
+	short* nearbyIntersectionsID;
+	intersection* nearbyIntersections;
+};
 
 
-//intersection nearbyIntersections[] = {
-//			{ .lat = 36.114572f, .lng = -115.137860f, .name = "Maryland/Flamingo" },
-//			{ .lat = 36.114646f, .lng = -115.142249f, .name = "Claymont/Flamingo" },
-//			{ .lat = 36.114691f, .lng = -115.146362f, .name = "Swenson/Flamingo" },
-//			{ .lat = 36.107965f, .lng = -115.150402f, .name = "Swenson/Harmon" },
-//			{ .lat = 36.107977f, .lng = -115.152008f, .name = "Paradise/Harmon" },
-//};
+volatile intersection currentIntersection;
 
+/**
+    The InitIntersectionManager() function initializes the currentIntersection and any other necessary objects for the intersection manager
+ */
+void InitIntersectionManager(); 
+
+/**
+    The GetNextIntersection() function calculates which intersection the driver is heading towers, and returns that intersection
+ */
 intersection GetNextIntersection(gpsPoint currentLocation, velocity heading);
-intersection LoadNearbyIntersection(gpsPoint currentLocation);
+
 /**
     The DeleteIntersection() function frees the necessary memory taken by an intersection object
  */
 void DeleteIntersection(intersection interSect);
 
+/**
+    The IntersectionDeepCopy() function performs a deep copy from intSrc to intDest
+ */
+void IntersectionDeepCopy(intersection * intDest, intersection * intSrc);
 #endif
  

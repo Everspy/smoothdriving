@@ -5,15 +5,16 @@
  *  Author: Matt
  */ 
  #include "GPSDecoder.h"
- #include "../USART/USARTFunc.h"
+ //#include "../USART/USARTFunc.h"
 
-char GGA_Buffer[GGABUFFERSIZE];             // save GGA string
+char GGA_Buffer[GGABUFFERSIZE];             // to save GGA string
 uint8_t CommaLocations[20];                 // to store instances of ','
 char GGA_CODE[3];
 bool ReceivingGGAString	= false;
 
 volatile uint16_t GGA_Index, CommaCount;
 
+void UpdateCurrentTime();
 
 void InitGPS()
 {
@@ -22,7 +23,7 @@ void InitGPS()
 	for(uint8_t i = 0; i < 20; i++)
 		CommaLocations[i] = 0;
     memset(GGA_Buffer, 0, GGABUFFERSIZE);
-	locationBuffer.top = -1;	
+	locationBuffer.bottom = -1;
 }
 bool IsNewGPSData()
 {
@@ -33,6 +34,20 @@ bool IsNewGPSData()
 	}
 	return false;
 }
+
+bool IsGPSFixed()
+{
+	char* gpsquality = GetGGAItem(GPSQUALITY);
+	char quality = gpsquality[0];
+	free(gpsquality);
+
+	// Detect no fix. Quality is a value between 0 and 8. '0' means no fix
+	if(quality > '0' && quality < '8')
+		return true;
+		
+	return false;
+}
+
 void DecodeBuffer()
 {
 	CommaCount = 1;
@@ -84,9 +99,9 @@ void PrintGGABuffer()
 	}
 }
 
+
 float GetGPSTime(void)
 {
-
 	char *Time_Buffer = GetGGAItem(UTCTIME);
 
 	float time = 0;
@@ -155,7 +170,7 @@ float GetLongitude(void)
 
 	return DegreeMinutesToDecimal(value, direction);
 }
-//3603.5671
+
 float DegreeMinutesToDecimal(float value, char direction)
 {
 	int8_t multiplier;
@@ -179,17 +194,20 @@ float GetAltitude(void)
 	return value;
 }
 
-void PushGPSPoint(gpsPoint point, float velocity)
+void PushGPSPoint(gpsPoint point, velocity vel)
 {
 	// Shifting the buffer downwards
 	for(uint8_t i = 0; i < LOCATIONBUFFERSIZE - 1; i++)
 	{
-		locationBuffer.prevLocations[5-i] = locationBuffer.prevLocations[4-i];
-		locationBuffer.velocity[5-i] = locationBuffer.velocity[4-i];
+		locationBuffer.prevLocations[i] = locationBuffer.prevLocations[i + 1];
+		locationBuffer.velocity[i] = locationBuffer.velocity[i + 1];
 	}
 	// Inserting new point
 	locationBuffer.prevLocations[0] = point;
-	locationBuffer.velocity[0] = velocity;
+	locationBuffer.velocity[0] = vel;
+	
+	if(locationBuffer.bottom < 5)
+		locationBuffer.bottom++;
 }
 
 void CreateGPSPoint(void)
@@ -200,23 +218,31 @@ void CreateGPSPoint(void)
 	point.lng = GetLongitude();
 	point.locatedTime = GetGPSTime();
 
-	char* gpsquality = GetGGAItem(GPSQUALITY);
-	char quality = gpsquality[0];
-	free(gpsquality);
-
-	// Detect no fix.
-	if(quality=='0')
+	if(!IsGPSFixed())
 		return;
 
 	// Calculate speed. set to zero if the buffer has no comparison
-	float speed;
-	if(locationBuffer.top > -1)
-		speed = GetSpeed(point, locationBuffer.prevLocations[0]);
+	velocity vel;
+	if(locationBuffer.bottom > -1)
+	{
+		vel = GetVelocity(point, locationBuffer.prevLocations[0]);
+	}
 	else
-		speed = 0;
+	{
+		vel.speed = 0;
+		vel.direction = 0;
+	}
 
-	PushGPSPoint(point, speed);
+	PushGPSPoint(point, vel);
 }
+
+void UpdateCurrentTime()
+{
+	if(!IsGPSFixed())
+		return;
+	currentTime = GetGPSTime();
+}
+
 /* 
  * Comma locations
  * [0] : Time
@@ -260,7 +286,7 @@ ISR (USART_RX_vect)
 
 	if(ReceivingGGAString && received_char == '$')
 	{
-		//CreateGPSPoint();
+		CreateGPSPoint();
 		NewGPSData = true;
 	}
 

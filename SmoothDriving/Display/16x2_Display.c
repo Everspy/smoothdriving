@@ -48,7 +48,7 @@
  void LCDSet(char* str)
  {
 	LCDInit(); // Clear screen
-	uint8_t currentLine = 1;
+	//uint8_t currentLine = 1;
 	for(unsigned char i = 0; i < 16; i++)
 	{
 	 	if(str[i] == 0)

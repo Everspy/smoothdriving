@@ -17,6 +17,7 @@
 
 	 UCSR0B |= (1 << RXEN0) | (1 << TXEN0) | (1 << RXCIE0);		// Enable receive, transmit and interrupt
 	 UCSR0C |= (1 << UCSZ01) | (1 << UCSZ00);		// Set data frame: 8 data bits, 1 stop bit, no parity
+
  }
 
 
@@ -31,9 +32,10 @@
  }
  void SendUARTChar(char letter)
  {
-	 UDR0 = letter;
-	 while (!(UCSR0A & (1<<UDRE0)));
-	 //_delay_us(1100);
+	loop_until_bit_is_set(UCSR0A, UDRE0);
+	UDR0 = letter;
+	//while (!(UCSR0A & (1<<UDRE0)));
+	//_delay_us(1100);
  }
 
  void PrintUARTChars(char* str, uint8_t length)
