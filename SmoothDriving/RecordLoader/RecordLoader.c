@@ -248,6 +248,7 @@ intersection GetIntersectionFromCSV(char* csvEntry)
 	intSec.name = GetCSVIndex(csvEntry, INDEX_NAME);
 	intSec.lat = GetFloatFromCSV(csvEntry, INDEX_LAT);
 	intSec.lng = GetFloatFromCSV(csvEntry, INDEX_LNG);
+	intSec.time = GetIntFromCSV(csvEntry, INDEX_TIME);
 	intSec.nearbyIntersectionCount = GetIntFromCSV(csvEntry, INDEX_LINKED_COUNT);
 	intSec.nearbyIntersectionsID = GetLinkedIntersections(csvEntry,intSec.nearbyIntersectionCount);
 	intSec.nearbyIntersections = NULL;

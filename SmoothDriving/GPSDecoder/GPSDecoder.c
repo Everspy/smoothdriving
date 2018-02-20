@@ -197,10 +197,10 @@ float GetAltitude(void)
 void PushGPSPoint(gpsPoint point, velocity vel)
 {
 	// Shifting the buffer downwards
-	for(uint8_t i = 0; i < LOCATIONBUFFERSIZE - 1; i++)
+	for(uint8_t i = LOCATIONBUFFERSIZE - 1; i > 0 ; i--)
 	{
-		locationBuffer.prevLocations[i] = locationBuffer.prevLocations[i + 1];
-		locationBuffer.velocity[i] = locationBuffer.velocity[i + 1];
+		locationBuffer.prevLocations[i] = locationBuffer.prevLocations[i - 1];
+		locationBuffer.velocity[i] = locationBuffer.velocity[i - 1];
 	}
 	// Inserting new point
 	locationBuffer.prevLocations[0] = point;
@@ -287,6 +287,7 @@ ISR (USART_RX_vect)
 	if(ReceivingGGAString && received_char == '$')
 	{
 		CreateGPSPoint();
+		UpdateCurrentTime();
 		NewGPSData = true;
 	}
 

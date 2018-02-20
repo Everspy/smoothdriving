@@ -9,6 +9,9 @@
 
 #define MAXIDLETIME 60*5 // 5 minutes
 
+#define DEBUG 1
+
+
 #include <avr/io.h>
 #include <string.h>
 #include <stdio.h>
@@ -27,7 +30,7 @@
 volatile float syncTime = 0;
 volatile float lastIntersectionChangeTime = 0;
 void (*SendString)(char*) = &SendUARTString;
-
+void PrintIntersectionUART(intersection intSec);
 /**
     The WaitForGPSFix() function blocks until a gps fix is found.
  */
@@ -35,10 +38,7 @@ void WaitForGPSFix()
 {
 	while(!IsGPSFixed())
 	{
-		SendUARTString("WaitingData\n\r");
 		while(!IsNewGPSData());
-		SendUARTString("Got Data\n\r");
-		_delay_ms(2000);
 	}
 }
 
@@ -70,19 +70,66 @@ bool CurrentlyMoving()
 	float speed = GetSpeed(locationBuffer.prevLocations[0], locationBuffer.prevLocations[1]);
 	return (speed > 4.8);
 }
+void printgpspoint(gpsPoint point)
+{
+	char temp[15];
+	dtostrf(point.lat, -8,6, temp);
+	SendUARTString("(");
+	SendUARTString(temp);
+	SendUARTString(",");
+	dtostrf(point.lng, -8,6, temp);
+	SendUARTString(temp);
+	SendUARTString(",");
+	dtostrf(point.locatedTime, -8,1, temp);
+	SendUARTString(temp);
+	SendUARTString(")");
+}
 /**
     The WaitForIntersectionSync() function waits for the user to stop at an intersection, then sets the sync time.
  */
 void WaitForIntersectionSync()
 {
 	bool intersectionSynced = false;
+	#if DEBUG
+	char temp[15];
+	#endif
 	while(!intersectionSynced)
 	{
 		gpsPoint currentLocation = locationBuffer.prevLocations[0];
-		intersection nearestIntersection = LoadNearestIntersection(currentLocation.lat, currentLocation.lng);
 		
+		intersection nearestIntersection = LoadNearestIntersection(currentLocation.lat, currentLocation.lng);
 		gpsPoint intersectionLocation = { .lat = nearestIntersection.lat, .lng = nearestIntersection.lng };
-		if(100 > DistanceBetweenPoints(currentLocation, intersectionLocation) &&
+
+		#if DEBUG
+			SendUARTString("Current loc: ");
+			dtostrf(currentLocation.lat, -8,6, temp);
+			SendUARTString(temp);
+			SendUARTString(",");
+			dtostrf(currentLocation.lng, -8,6, temp);
+			SendUARTString(temp);
+
+			//float speed=DistanceBetweenPoints(locationBuffer.prevLocations[0], locationBuffer.prevLocations[1]);
+			float speed = GetSpeed(locationBuffer.prevLocations[0], locationBuffer.prevLocations[1]);
+
+			SendUARTString(", SPEED:");
+			dtostrf(speed, -8,6, temp);
+			SendUARTString(temp);
+
+			SendUARTString(",");
+			printgpspoint(locationBuffer.prevLocations[0]);
+			printgpspoint(locationBuffer.prevLocations[1]);
+			SendUARTString("\r\n");
+
+			PrintIntersectionUART(nearestIntersection);
+
+			if(CurrentlyMoving())
+				SendUARTString("MOVING\n\r");
+			else
+				SendUARTString("NOTMOVING\n\r");
+		#endif
+
+
+		if(75 > DistanceBetweenPoints(currentLocation, intersectionLocation) &&
 			!CurrentlyMoving())
 		{
 			DeleteIntersection(currentIntersection);
@@ -92,6 +139,9 @@ void WaitForIntersectionSync()
 			lastIntersectionChangeTime = currentTime;
 			intersectionSynced = true;
 		}
+		else
+			DeleteIntersection(nearestIntersection);
+		_delay_ms(4000);
 	}
 }
 
@@ -111,6 +161,9 @@ void PrintIntersectionUART(intersection intSec)
 	SendUARTString(temp);
 	SendUARTString(", NearbyCount: ");
 	itoa(intSec.nearbyIntersectionCount, temp, 10);
+	SendUARTString(temp);
+	SendUARTString(", time:");
+	itoa(intSec.time, temp, 10);
 	SendUARTString(temp);
 	SendUARTString("\r\n");
 }
@@ -136,11 +189,11 @@ int main(void)
 	WaitForIntersectionSync();
 	SendStringToDisplay("Started.");
 	
-	char speedStr[10];
+	char speedStr[15];
 	while(1)
 	{
 		WaitForGPSFix();
-		if(!CurrentlyMoving() || (currentTime - lastIntersectionChangeTime) > 300)
+		if(!CurrentlyMoving() && (currentTime - lastIntersectionChangeTime) > 300)
 		{
 			float idleTime = TimeSinceLastMovement();
 			if(idleTime > MAXIDLETIME)
@@ -148,6 +201,9 @@ int main(void)
 				Sleep();
 				continue;
 			}
+		}
+		else if((currentTime - lastIntersectionChangeTime) > 300)
+		{
 			WaitForIntersectionSync();
 		}
 		
@@ -157,30 +213,67 @@ int main(void)
 			
 		float distanceBetweenIntersections = DistanceBetweenPoints(nextIntersectionLocation, currentIntersectionLocation);
 		
-		short necessarySpeed = (short)ConvertSpeedToMPH((distanceBetweenIntersections/(syncTime + nextInt.time - currentTime)));
+		#if DEBUG
+			dtostrf(distanceBetweenIntersections, -8,2, speedStr);
+			SendUARTString("DistBetween Int: ");
+			SendUARTString(speedStr);
+			SendUARTString(",");
+			dtostrf(currentTime, -8,2, speedStr);
+			SendUARTString("Curtime: ");
+			SendUARTString(speedStr);
+			SendUARTString(",");
+			dtostrf(syncTime, -8,2, speedStr);
+			SendUARTString("Synctime: ");
+			SendUARTString(speedStr);
+			SendUARTString("\n\r");
+			float speed = GetSpeed(locationBuffer.prevLocations[0], locationBuffer.prevLocations[1]);
+
+			SendUARTString(", SPEED:");
+			dtostrf(speed, -8,2, speedStr);
+			SendUARTString(speedStr);
+
+			SendUARTString(",");
+			printgpspoint(locationBuffer.prevLocations[0]);
+			printgpspoint(locationBuffer.prevLocations[1]);
+			SendUARTString("\r\n");
+		#endif
+
+		float distanceFromNextIntersection = DistanceBetweenPoints(locationBuffer.prevLocations[0], nextIntersectionLocation);
+		float distanceFromCurrentIntersection = DistanceBetweenPoints(locationBuffer.prevLocations[0], currentIntersectionLocation);
+		short necessarySpeed = (short)ConvertSpeedToMPH((distanceFromNextIntersection/(syncTime + nextInt.time - currentTime)));
 		itoa(necessarySpeed, speedStr, 10);
 		SendStringToDisplay("Maintain at least ");
 		SendStringToDisplay(speedStr);
 		SendStringToDisplay("mph.\n\r");
+
+		//float distanceFromNextIntersection = DistanceBetweenPoints(locationBuffer.prevLocations[0], nextIntersectionLocation);
 		
-		float distanceFromCurrentIntersection = DistanceBetweenPoints(locationBuffer.prevLocations[0], currentIntersectionLocation);
-		float distanceFromNextIntersection = DistanceBetweenPoints(locationBuffer.prevLocations[0], nextIntersectionLocation);
-		
+		#if DEBUG
+			PrintIntersectionUART(nextInt);
+		#endif
+
 		if(distanceFromNextIntersection < distanceFromCurrentIntersection)
 		{
+			#if DEBUG
+			SendUARTString("Reached intersection\n\r");
+			#endif
 			DeleteIntersection(currentIntersection);
-			currentIntersection = nextInt;
+			currentIntersection = LoadRecordByID(nextInt.id);
 			LoadLinkedIntersections((intersection *)&currentIntersection);
 			lastIntersectionChangeTime = currentTime;
 		}
-		else if (distanceFromCurrentIntersection < 100) // 100 metres
+		else if (distanceFromCurrentIntersection < 50) //50 metres
 		{
 			syncTime = currentTime;
+			_delay_ms(500);
 		}
-		else
-			DeleteIntersection(nextInt);
-	}
 
+
+		#if DEBUG
+		SendString("------------\r\n");
+		_delay_ms(4000);
+		#endif
+	}
 }
 
 /**
@@ -188,7 +281,9 @@ int main(void)
  */
 ISR(TIMER1_COMPA_vect)
 {
-	currentTime += 0.010; // add 10ms to current time.
+	#if DEBUG == 0
+	currentTime += 0.011; // add 11ms to current time.
+	#endif
 	disk_timerproc();
 }
 

@@ -61,6 +61,8 @@ void InitIntersectionManager()
 	}
 
  }
+
+ // untested
  void IntersectionDeepCopy(intersection * intDest, intersection * intSrc)
  {
 		intDest->id = intSrc->id;
