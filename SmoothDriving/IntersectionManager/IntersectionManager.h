@@ -8,8 +8,6 @@
 #ifndef INTERSECTIONMANAGER_H_
 #define INTERSECTIONMANAGER_H_
 
-#define NEARBYINTERSECTIONCOUNT 5
-
 #include <stdlib.h>
 
 #include "../GPSFunc/GPSFunctions.h"
@@ -31,7 +29,7 @@ struct intersection
 };
 
 
-volatile intersection currentIntersection;
+intersection currentIntersection;
 
 /**
     The InitIntersectionManager() function initializes the currentIntersection and any other necessary objects for the intersection manager
@@ -46,7 +44,7 @@ intersection GetNextIntersection(gpsPoint currentLocation, velocity heading);
 /**
     The DeleteIntersection() function frees the necessary memory taken by an intersection object
  */
-void DeleteIntersection(intersection interSect);
+void DeleteIntersection(intersection* interSect);
 
 /**
     The IntersectionDeepCopy() function performs a deep copy from intSrc to intDest

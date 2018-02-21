@@ -225,7 +225,7 @@ void CreateGPSPoint(void)
 	velocity vel;
 	if(locationBuffer.bottom > -1)
 	{
-		vel = GetVelocity(point, locationBuffer.prevLocations[0]);
+		vel = GetVelocity(locationBuffer.prevLocations[0], point);
 	}
 	else
 	{

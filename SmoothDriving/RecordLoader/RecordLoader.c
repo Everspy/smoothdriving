@@ -161,9 +161,11 @@ intersection* LoadNearbyIntersections(float currentLat, float currentLng, inters
 	return retArray;
 }
 */
+#include "..//USART/USARTFunc.h"
 void LoadLinkedIntersections(intersection* intSec)
 {
 		intSec->nearbyIntersections = malloc(sizeof(intersection)*(intSec->nearbyIntersectionCount));
+
 		short filled = 0;
 		for(short i = 0; i < intSec->nearbyIntersectionCount; i++)
 		{
@@ -180,15 +182,17 @@ void LoadLinkedIntersections(intersection* intSec)
 			return;
 		
 		// Scan file looking for nearest intersection
-		while(!f_error(&file) && !f_eof(&file))
+		while(!f_error(&file) && !f_eof(&file) && filled <= intSec->nearbyIntersectionCount)
 		{
 			f_gets(line, LOAD_BYTE_COUNT, &file);
 			
 			if(StrLen(line, 30) < 30)
+			{
 				continue;
-			
+			}
+		
 			short currentID = GetIntFromCSV(line, INDEX_ID);
-			
+
 			bool linkedIntersection = false;
 			for(short i = 0; i < (intSec->nearbyIntersectionCount); i++)
 				linkedIntersection |= (currentID == intSec->nearbyIntersectionsID[i]);
@@ -233,7 +237,7 @@ intersection LoadNearestIntersection(float lat, float lng)
 		if(distance < lowestDistance)
 		{
 			lowestDistance = distance;
-			DeleteIntersection(intSec);
+			DeleteIntersection(&intSec);
 			intSec = GetIntersectionFromCSV(line);
 		}
 		

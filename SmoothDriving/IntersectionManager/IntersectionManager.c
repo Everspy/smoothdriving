@@ -32,32 +32,37 @@ void InitIntersectionManager()
  intersection GetNextIntersection(gpsPoint currentLocation, velocity heading)
  {
 	float closestAngleDifference = PI;
-	int closestID = 0;
-	for(short i = 0; i <= currentIntersection.nearbyIntersectionCount; i++)
+	int closestIndex = 0;
+
+
+	for(short i = 0; i < currentIntersection.nearbyIntersectionCount; i++)
 	{
 		gpsPoint intersecLocation = {.lat = currentIntersection.nearbyIntersections[i].lat, .lng = currentIntersection.nearbyIntersections[i].lng };
-		float currentAngle = GetDirection(currentLocation, intersecLocation);
-		currentAngle = GetAngleDifference(heading.direction, currentAngle);
-		
+
+		float currentAngle = GetDirection(currentLocation, intersecLocation); // Angle between user and the next intersection being analyzed
+		currentAngle = GetAngleDifference(heading.direction, currentAngle); // Angle difference between user's current heading and angle between user and intersections
+
 		if(currentAngle < closestAngleDifference)
 		{
 			closestAngleDifference = currentAngle;
-			closestID = i;
+			closestIndex = i;
 		}
 	}
-	return currentIntersection.nearbyIntersections[closestID];
+	return currentIntersection.nearbyIntersections[closestIndex];
  }
- void DeleteIntersection(intersection interSect)
+ 
+ // update so all calls send refernce!
+ void DeleteIntersection(intersection* interSect)
  {
-	if(interSect.name != NULL)
-	 	free(interSect.name);
-	if(interSect.nearbyIntersectionsID != NULL)
-		free(interSect.nearbyIntersectionsID);
-	if(interSect.nearbyIntersections != NULL)
+	if(interSect->name != NULL)
+	 	free(interSect->name);
+	if(interSect->nearbyIntersectionsID != NULL)
+		free(interSect->nearbyIntersectionsID);
+	if(interSect->nearbyIntersections != NULL)
 	{
-		for(short i = 0; i < interSect.nearbyIntersectionCount; i++)
-			DeleteIntersection(interSect.nearbyIntersections[i]);
-		free(interSect.nearbyIntersections);
+		for(short i = 0; i < interSect->nearbyIntersectionCount; i++)
+			DeleteIntersection(&(interSect->nearbyIntersections[i]));
+		free(interSect->nearbyIntersections);
 	}
 
  }

@@ -52,6 +52,9 @@ float DistanceBetweenPoints(gpsPoint a, gpsPoint b)
 
 float GetSpeed(gpsPoint a, gpsPoint b)
 {
+	float deltaTime = fabs(a.locatedTime - b.locatedTime);
+	if(deltaTime == 0) // prevent divide by zero
+		return 0;
 	return (float)DistanceBetweenPoints(a,b)/fabs(a.locatedTime - b.locatedTime);
 }
 
@@ -66,7 +69,7 @@ float GetDirection(gpsPoint start, gpsPoint end)
 {
 	float lat = (end.lat - start.lat);
 	float lng = (end.lng - start.lng);
-	return RadiansToDegrees(atan2(lng,lat));
+	return atan2(lng,lat);
 }
 float DegreesToRadians(float degrees)
 {

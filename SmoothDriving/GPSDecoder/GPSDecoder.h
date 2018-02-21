@@ -40,7 +40,7 @@
 #define ALTITUDE 8
 #define ALTITUDEUNITS 9
 
-#define LOCATIONBUFFERSIZE 5
+#define LOCATIONBUFFERSIZE 2  // Must be >= 2
 
 #define GGABUFFERSIZE 90
 
